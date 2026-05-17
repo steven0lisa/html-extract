@@ -206,11 +206,12 @@ fn test_version_flag() {
 #[test]
 fn test_file_input() {
     let input = "<html><body><p>FromFile</p></body></html>";
-    let temp_path = "/tmp/pup_test_input.html";
-    std::fs::write(temp_path, input).unwrap();
+    let temp_dir = std::env::temp_dir();
+    let temp_path = temp_dir.join("pup_test_input.html");
+    std::fs::write(&temp_path, input).unwrap();
 
-    let result = run_pup("p", "", &["-f", temp_path]);
+    let result = run_pup("p", "", &["-f", temp_path.to_str().unwrap()]);
     assert!(result.contains("FromFile"));
 
-    std::fs::remove_file(temp_path).ok();
+    std::fs::remove_file(&temp_path).ok();
 }
