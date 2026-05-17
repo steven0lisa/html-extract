@@ -1,8 +1,7 @@
 use std::process::{Command, Stdio};
 
 fn get_pup_binary() -> String {
-    // Use the built binary
-    "./target/release/pup-rs".to_string()
+    std::env::var("CARGO_BIN_EXE_pup-rs").expect("CARGO_BIN_EXE_pup-rs not set")
 }
 
 fn read_test_file(name: &str) -> String {
