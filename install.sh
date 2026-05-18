@@ -33,12 +33,14 @@ detect_arch() {
     esac
 }
 
-# Get latest release tag from GitHub API
+# Get latest release tag from GitHub redirect header
 get_latest_version() {
-    curl -sf "https://api.github.com/repos/${REPO}/releases/latest" \
-        | grep -m1 '"tag_name"' \
-        | head -1 \
-        | cut -d'"' -f4
+    curl -sfI "https://github.com/${REPO}/releases/latest" 2>/dev/null \
+        | grep -i "^location:" \
+        | tr -d '\r' \
+        | rev \
+        | cut -d'/' -f1 \
+        | rev
 }
 
 # Find existing installation path
@@ -74,7 +76,10 @@ fi
 # Skip if already up-to-date
 if [ -n "$existing_path" ]; then
     current_version=$("$existing_path" --version 2>/dev/null || echo "unknown")
-    if [ "$current_version" = "$version" ]; then
+    # Normalize: strip leading "v" and binary name prefix for comparison
+    current_ver_num=$(echo "$current_version" | sed 's/^[^0-9]*//' | sed 's/^v//')
+    target_ver_num=$(echo "$version" | sed 's/^v//')
+    if [ "$current_ver_num" = "$target_ver_num" ]; then
         info "Already up-to-date: ${version}"
         exit 0
     fi
@@ -114,8 +119,8 @@ if [ -n "$existing_path" ]; then
     info "Updating at ${install_dir}/${BINARY}"
 else
     # Fresh install: pick a location
-    for candidate in "/usr/local/bin" "$HOME/.local/bin" "$HOME/bin"; do
-        if [ -d "$candidate" ] || [ -w "$(dirname "$candidate")" ]; then
+    for candidate in "$HOME/.local/bin" "$HOME/bin" "/usr/local/bin"; do
+        if [ -d "$candidate" ] && [ -w "$candidate" ]; then
             install_dir="$candidate"
             break
         fi
