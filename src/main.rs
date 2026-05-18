@@ -6,6 +6,7 @@ use std::io::Read;
 
 use clap::Parser;
 
+use display::Displayer;
 use parser::parse_commands;
 use selector::{SelectorFunc, SelectorFuncType, build_selector_func};
 
@@ -57,6 +58,10 @@ struct Args {
     #[arg(long = "charset")]
     charset: Option<String>,
 
+    /// Output minimal DOM skeleton (ultra-compressed, only id/class elements)
+    #[arg(long = "slim")]
+    slim: bool,
+
     /// Selectors and optional display function
     selectors: Vec<String>,
 }
@@ -67,6 +72,7 @@ pub struct Config {
     pub raw: bool,
     pub strict: bool,
     pub pre: bool,
+    pub slim: bool,
     pub max_print_level: i32,
     pub indent_string: String,
     pub charset: Option<String>,
@@ -80,6 +86,7 @@ impl Default for Config {
             raw: false,
             strict: false,
             pre: false,
+            slim: false,
             max_print_level: -1,
             indent_string: " ".to_string(),
             charset: None,
@@ -96,6 +103,7 @@ fn main() {
     config.raw = args.raw;
     config.strict = args.strict;
     config.pre = args.pre;
+    config.slim = args.slim;
     config.charset = args.charset;
 
     if let Some(limit) = args.limit {
@@ -201,6 +209,9 @@ fn main() {
     // Display results
     if number_mode {
         println!("{}", selected_nodes.len());
+    } else if config.slim {
+        let displayer = display::SlimDisplayer;
+        displayer.display(&document, &selected_nodes, &config);
     } else {
         let displayer = display::create_displayer(&cmds, last_cmd_is_displayer);
         displayer.display(&document, &selected_nodes, &config);

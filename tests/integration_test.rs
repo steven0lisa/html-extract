@@ -213,3 +213,78 @@ fn test_file_input() {
 
     std::fs::remove_file(&temp_path).ok();
 }
+
+// --- Slim mode tests ---
+
+#[test]
+fn test_slim_basic_filtering() {
+    let input = r#"<html><body><div id="main" class="container"><p>Hello</p><span class="highlight">World</span></div></body></html>"#;
+    let result = run_extract("", input, &["--slim"]);
+    // Only elements with id/class should appear
+    assert!(result.contains("d#main.container"), "Should contain d#main.container, got: {}", result);
+    assert!(result.contains("s.highlight"), "Should contain s.highlight, got: {}", result);
+    // <p> has no id/class, should not appear as a tag line
+    assert!(!result.contains("\np\n"), "Plain <p> should not appear");
+}
+
+#[test]
+fn test_slim_tag_abbreviation() {
+    let input = r#"<html><body><div class="a"><ul class="b"><li class="c"></li></ul><table class="d"></table></div></body></html>"#;
+    let result = run_extract("", input, &["--slim"]);
+    assert!(result.contains("d.a"), "div should be abbreviated to d");
+    assert!(result.contains("u.b"), "ul should be abbreviated to u");
+    assert!(result.contains("l.c"), "li should be abbreviated to l");
+    assert!(result.contains("t.d"), "table should be abbreviated to t");
+}
+
+#[test]
+fn test_slim_attrs_output() {
+    let input = r#"<html><body><input type="text" name="q" value="" data-role="search"><button type="submit" class="btn primary">Go</button></body></html>"#;
+    let result = run_extract("", input, &["--slim"]);
+    // Attributes are ordered alphabetically by key
+    assert!(result.contains("input["), "Should contain input element, got: {}", result);
+    assert!(result.contains("[data-role=search]"), "Should contain data-role attr, got: {}", result);
+    assert!(result.contains("[name=q]"), "Should contain name attr, got: {}", result);
+    assert!(result.contains("[type=text]"), "Should contain type attr, got: {}", result);
+    assert!(result.contains("[value=]"), "Should contain empty value attr, got: {}", result);
+    assert!(result.contains("btn"), "Should contain btn abbreviation, got: {}", result);
+    assert!(result.contains(".btn.primary"), "Should have btn with classes, got: {}", result);
+    assert!(result.contains("[type=submit]"), "Should contain submit type, got: {}", result);
+}
+
+#[test]
+fn test_slim_indent_no_container() {
+    let input = r#"<html><body><div><div><span class="deep">text</span></div></div></body></html>"#;
+    let result = run_extract("", input, &["--slim"]);
+    // The two wrapping divs have no id/class, so span.deep should be at level 0
+    let lines: Vec<&str> = result.trim().lines().collect();
+    assert_eq!(lines.len(), 1, "Should have exactly 1 line, got: {:?}", lines);
+    assert_eq!(lines[0], "s.deep", "Should be at root level with no indent");
+}
+
+#[test]
+fn test_slim_with_selector() {
+    let input = r#"<html><body><div id="main" class="container"><div class="article"><a class="link">Link</a></div></div></body></html>"#;
+    let result = run_extract("div.article", input, &["--slim"]);
+    // Should only show content within div.article
+    assert!(result.contains("a.link"), "Should contain a.link within article");
+    assert!(!result.contains("d#main"), "Should not contain elements outside selector scope");
+}
+
+#[test]
+fn test_slim_empty_output() {
+    let input = r#"<html><body><p>Just text</p><div><span>more</span></div></body></html>"#;
+    let result = run_extract("", input, &["--slim"]);
+    assert!(result.trim().is_empty(), "Should output nothing when no elements have id/class, got: {}", result);
+}
+
+#[test]
+fn test_slim_indent_level() {
+    let input = r#"<html><body><div id="main"><div class="sub"><span class="text"></span></div></div></body></html>"#;
+    let result = run_extract("", input, &["--slim", "-i", "2"]);
+    let lines: Vec<&str> = result.trim().lines().collect();
+    assert_eq!(lines.len(), 3, "Should have 3 lines, got: {:?}", lines);
+    assert_eq!(lines[0], "d#main");
+    assert!(lines[1].starts_with("  d.sub"), "Second line should be indented with 2 spaces, got: '{}'", lines[1]);
+    assert!(lines[2].starts_with("    s.text"), "Third line should be indented with 4 spaces, got: '{}'", lines[2]);
+}

@@ -62,6 +62,7 @@ $ cat index.html | html-extract [flags] [selectors] [display function]
 | `-s, --strict` | Ignore non-standard HTML tags |
 | `--pre` | Preserve preformatted text |
 | `--charset <charset>` | Specify the charset |
+| `--slim` | Output minimal DOM skeleton (ultra-compressed) |
 | `--version` | Display version |
 
 ### Implemented Selectors
@@ -108,6 +109,47 @@ html-extract ':parent-of(selector)'
 | `attr{name}` | Print attribute value |
 | `json{}` | Output as JSON |
 
+### Slim Mode (`--slim`)
+
+Output an ultra-compressed DOM skeleton that only preserves elements with identifying attributes (`id`, `class`, `name`, `type`, `value`, `data-*`). Designed for feeding HTML structure to AI with minimal token cost.
+
+**Tag abbreviations:** `div→d`, `span→s`, `table→t`, `ul→u`, `ol→o`, `li→l`, `section→sec`, `article→art`, `header→hdr`, `footer→ftr`, `main→mn`, `aside→asd`, `button→btn`, `label→lbl`, etc.
+
+```bash
+# Full page skeleton
+$ curl -s https://example.com | html-extract --slim
+
+# With selector - compress a subtree
+$ curl -s https://example.com | html-extract --slim 'div.article-list'
+
+# Custom indent
+$ curl -s https://example.com | html-extract --slim -i 4
+```
+
+**Input:**
+```html
+<html>
+  <body>
+    <div id="main" class="container">
+      <h1 class="title">Hello</h1>
+      <form class="search-form">
+        <input type="text" name="q" data-role="search">
+        <button type="submit" class="btn primary">Go</button>
+      </form>
+    </div>
+  </body>
+</html>
+```
+
+**Output:**
+```
+d#main.container
+  h1.title
+  form.search-form
+    input[type=text][name=q][data-role=search]
+    btn[type=submit].btn.primary
+```
+
 ## Examples
 
 ```bash
@@ -145,6 +187,10 @@ $ cat index.html | html-extract 'h1 + p'
 $ cat index.html | html-extract 'li:first-child'
 $ cat index.html | html-extract 'li:nth-child(2)'
 $ cat index.html | html-extract ':contains("Rob")'
+
+# Slim mode - ultra-compressed DOM skeleton
+$ curl -s https://news.ycombinator.com | html-extract --slim
+$ cat index.html | html-extract --slim 'div#content'
 ```
 
 ## License

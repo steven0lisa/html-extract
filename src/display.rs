@@ -401,3 +401,135 @@ impl JsonDisplayer {
         vals
     }
 }
+
+// Slim Displayer - minimal DOM skeleton output
+pub struct SlimDisplayer;
+
+fn abbreviate_tag(tag: &str) -> &str {
+    match tag {
+        "div" => "d",
+        "span" => "s",
+        "table" => "t",
+        "thead" => "thd",
+        "tbody" => "tb",
+        "tfoot" => "tf",
+        "tr" => "tr",
+        "td" => "td",
+        "th" => "th",
+        "ul" => "u",
+        "ol" => "o",
+        "li" => "l",
+        "section" => "sec",
+        "article" => "art",
+        "header" => "hdr",
+        "footer" => "ftr",
+        "nav" => "nav",
+        "main" => "mn",
+        "aside" => "asd",
+        "figure" => "fig",
+        "figcaption" => "fc",
+        "button" => "btn",
+        "label" => "lbl",
+        _ => tag,
+    }
+}
+
+fn has_identifier_attrs(element: &scraper::node::Element) -> bool {
+    for attr in element.attrs() {
+        let key: &str = attr.0.as_ref();
+        if key == "id" || key == "class" || key == "name" || key == "type" || key == "value" || key.starts_with("data-") {
+            return true;
+        }
+    }
+    false
+}
+
+impl Displayer for SlimDisplayer {
+    fn display(&self, doc: &Html, nodes: &[NodeId], config: &Config) {
+        for &node_id in nodes {
+            self.print_slim_node(doc, node_id, 0, config);
+        }
+    }
+}
+
+impl SlimDisplayer {
+    fn print_slim_node(&self, doc: &Html, node_id: NodeId, effective_level: i32, config: &Config) {
+        let tree_node = doc.tree.get(node_id).unwrap();
+        let node = tree_node.value();
+
+        if let Node::Element(element) = node {
+            if has_identifier_attrs(element) {
+                let tag = abbreviate_tag(element.name());
+                let mut line = String::new();
+
+                // Indent
+                for _ in 0..effective_level {
+                    line.push_str(&config.indent_string);
+                }
+
+                // Tag
+                line.push_str(tag);
+
+                // Collect attrs in order: id, class, then name/type/value/data-*
+                let mut id_val: Option<&str> = None;
+                let mut class_val: Option<&str> = None;
+                let mut extra_attrs: Vec<(&str, &str)> = Vec::new();
+
+                for attr in element.attrs() {
+                    let key = attr.0.as_ref();
+                    let val = attr.1.as_ref();
+                    match key {
+                        "id" => id_val = Some(val),
+                        "class" => class_val = Some(val),
+                        "name" | "type" | "value" => {
+                            extra_attrs.push((key, val));
+                        }
+                        k if k.starts_with("data-") => {
+                            extra_attrs.push((k, val));
+                        }
+                        _ => {}
+                    }
+                }
+
+                // id → #id
+                if let Some(id) = id_val {
+                    line.push('#');
+                    line.push_str(id);
+                }
+
+                // class → .class1.class2
+                if let Some(classes) = class_val {
+                    for cls in classes.split_whitespace() {
+                        line.push('.');
+                        line.push_str(cls);
+                    }
+                }
+
+                // Extra attrs: name, type, value, data-*
+                for (key, val) in &extra_attrs {
+                    line.push('[');
+                    line.push_str(key);
+                    line.push('=');
+                    line.push_str(val);
+                    line.push(']');
+                }
+
+                println!("{}", line);
+                self.print_slim_children(doc, node_id, effective_level + 1, config);
+            } else {
+                // No identifier attrs — skip this element but process children at same level
+                self.print_slim_children(doc, node_id, effective_level, config);
+            }
+        } else {
+            // Document, Doctype, etc — just process children
+            self.print_slim_children(doc, node_id, effective_level, config);
+        }
+    }
+
+    fn print_slim_children(&self, doc: &Html, node_id: NodeId, level: i32, config: &Config) {
+        let tree_node = doc.tree.get(node_id).unwrap();
+        for child in tree_node.children() {
+            self.print_slim_node(doc, child.id(), level, config);
+        }
+    }
+}
