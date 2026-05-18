@@ -11,11 +11,11 @@ use selector::{SelectorFunc, SelectorFuncType, build_selector_func};
 
 
 
-pub const VERSION: &str = "0.4.2";
+pub const VERSION: &str = "0.1.0";
 
 /// Command line tool for processing HTML using CSS selectors
 #[derive(Parser, Debug)]
-#[command(name = "pup", version = VERSION, about = "pup is a command line tool for processing HTML")]
+#[command(name = "html-extract", version = VERSION, about = "html-extract is a command line tool for processing HTML")]
 struct Args {
     /// Print result with color
     #[arg(short = 'c', long = "color")]

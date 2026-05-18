@@ -1,6 +1,6 @@
-# html-extract (pup-rs)
+# html-extract
 
-Command line tool for processing HTML using CSS selectors. A Rust port of [pup](https://github.com/ericchiang/pup).
+Command line tool for processing HTML using CSS selectors.
 
 Reads from stdin, prints to stdout, and allows the user to filter parts of the page using [CSS selectors](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors).
 

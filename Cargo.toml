@@ -1,8 +1,8 @@
 [package]
-name = "pup-rs"
-version = "0.4.2"
+name = "html-extract"
+version = "0.1.0"
 edition = "2021"
-description = "Command line tool for processing HTML using CSS selectors (Rust port of pup)"
+description = "Command line tool for processing HTML using CSS selectors"
 license = "MIT"
 
 [dependencies]
