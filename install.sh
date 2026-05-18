@@ -36,8 +36,9 @@ detect_arch() {
 # Get latest release tag from GitHub API
 get_latest_version() {
     curl -sf "https://api.github.com/repos/${REPO}/releases/latest" \
-        | grep '"tag_name"' \
-        | sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/'
+        | grep -m1 '"tag_name"' \
+        | head -1 \
+        | cut -d'"' -f4
 }
 
 # Find existing installation path
