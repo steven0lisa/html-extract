@@ -220,46 +220,50 @@ fn test_file_input() {
 fn test_slim_basic_filtering() {
     let input = r#"<html><body><div id="main" class="container"><p>Hello</p><span class="highlight">World</span></div></body></html>"#;
     let result = run_extract("", input, &["--slim"]);
-    // Only elements with id/class should appear
-    assert!(result.contains("d#main.container"), "Should contain d#main.container, got: {}", result);
-    assert!(result.contains("s.highlight"), "Should contain s.highlight, got: {}", result);
-    // <p> has no id/class, should not appear as a tag line
-    assert!(!result.contains("\np\n"), "Plain <p> should not appear");
+    // Only elements with id/class should appear, no tag prefix
+    assert!(result.contains("#main.container"), "Should contain #main.container, got: {}", result);
+    assert!(result.contains(".highlight"), "Should contain .highlight, got: {}", result);
+    // <p> has no id/class, should not appear
+    assert!(!result.contains("Hello"), "Plain <p> content should not appear");
 }
 
 #[test]
-fn test_slim_tag_abbreviation() {
+fn test_slim_no_tag_prefix() {
     let input = r#"<html><body><div class="a"><ul class="b"><li class="c"></li></ul><table class="d"></table></div></body></html>"#;
     let result = run_extract("", input, &["--slim"]);
-    assert!(result.contains("d.a"), "div should be abbreviated to d");
-    assert!(result.contains("u.b"), "ul should be abbreviated to u");
-    assert!(result.contains("l.c"), "li should be abbreviated to l");
-    assert!(result.contains("t.d"), "table should be abbreviated to t");
+    // No tag prefix at all — just identifiers
+    assert!(result.contains(".a"), "Should have .a without tag prefix");
+    assert!(result.contains(".b"), "Should have .b without tag prefix");
+    assert!(result.contains(".c"), "Should have .c without tag prefix");
+    assert!(result.contains(".d"), "Should have .d without tag prefix");
+    assert!(!result.contains("d.a"), "Should NOT have d.a tag prefix");
+    assert!(!result.contains("u.b"), "Should NOT have u.b tag prefix");
 }
 
 #[test]
 fn test_slim_attrs_output() {
     let input = r#"<html><body><input type="text" name="q" value="" data-role="search"><button type="submit" class="btn primary">Go</button></body></html>"#;
     let result = run_extract("", input, &["--slim"]);
-    // Attributes are ordered alphabetically by key
-    assert!(result.contains("input["), "Should contain input element, got: {}", result);
+    // No tag prefix, just attrs
     assert!(result.contains("[data-role=search]"), "Should contain data-role attr, got: {}", result);
     assert!(result.contains("[name=q]"), "Should contain name attr, got: {}", result);
     assert!(result.contains("[type=text]"), "Should contain type attr, got: {}", result);
     assert!(result.contains("[value=]"), "Should contain empty value attr, got: {}", result);
-    assert!(result.contains("btn"), "Should contain btn abbreviation, got: {}", result);
-    assert!(result.contains(".btn.primary"), "Should have btn with classes, got: {}", result);
+    assert!(result.contains(".btn.primary"), "Should have classes without tag prefix, got: {}", result);
     assert!(result.contains("[type=submit]"), "Should contain submit type, got: {}", result);
+    assert!(!result.contains("input["), "Should NOT have input tag prefix");
+    // btn appears inside .btn.primary class string, so we check for standalone "btn["
+    assert!(!result.contains("btn["), "Should NOT have btn tag prefix before brackets");
 }
 
 #[test]
 fn test_slim_indent_no_container() {
     let input = r#"<html><body><div><div><span class="deep">text</span></div></div></body></html>"#;
     let result = run_extract("", input, &["--slim"]);
-    // The two wrapping divs have no id/class, so span.deep should be at level 0
+    // The two wrapping divs have no id/class, so .deep should be at level 0
     let lines: Vec<&str> = result.trim().lines().collect();
     assert_eq!(lines.len(), 1, "Should have exactly 1 line, got: {:?}", lines);
-    assert_eq!(lines[0], "s.deep", "Should be at root level with no indent");
+    assert_eq!(lines[0], ".deep", "Should be at root level with no indent");
 }
 
 #[test]
@@ -267,8 +271,8 @@ fn test_slim_with_selector() {
     let input = r#"<html><body><div id="main" class="container"><div class="article"><a class="link">Link</a></div></div></body></html>"#;
     let result = run_extract("div.article", input, &["--slim"]);
     // Should only show content within div.article
-    assert!(result.contains("a.link"), "Should contain a.link within article");
-    assert!(!result.contains("d#main"), "Should not contain elements outside selector scope");
+    assert!(result.contains(".link"), "Should contain .link within article");
+    assert!(!result.contains("#main"), "Should not contain elements outside selector scope");
 }
 
 #[test]
@@ -284,7 +288,7 @@ fn test_slim_indent_level() {
     let result = run_extract("", input, &["--slim", "-i", "2"]);
     let lines: Vec<&str> = result.trim().lines().collect();
     assert_eq!(lines.len(), 3, "Should have 3 lines, got: {:?}", lines);
-    assert_eq!(lines[0], "d#main");
-    assert!(lines[1].starts_with("  d.sub"), "Second line should be indented with 2 spaces, got: '{}'", lines[1]);
-    assert!(lines[2].starts_with("    s.text"), "Third line should be indented with 4 spaces, got: '{}'", lines[2]);
+    assert_eq!(lines[0], "#main");
+    assert!(lines[1].starts_with("  .sub"), "Second line should be indented with 2 spaces, got: '{}'", lines[1]);
+    assert!(lines[2].starts_with("    .text"), "Third line should be indented with 4 spaces, got: '{}'", lines[2]);
 }

@@ -405,35 +405,6 @@ impl JsonDisplayer {
 // Slim Displayer - minimal DOM skeleton output
 pub struct SlimDisplayer;
 
-fn abbreviate_tag(tag: &str) -> &str {
-    match tag {
-        "div" => "d",
-        "span" => "s",
-        "table" => "t",
-        "thead" => "thd",
-        "tbody" => "tb",
-        "tfoot" => "tf",
-        "tr" => "tr",
-        "td" => "td",
-        "th" => "th",
-        "ul" => "u",
-        "ol" => "o",
-        "li" => "l",
-        "section" => "sec",
-        "article" => "art",
-        "header" => "hdr",
-        "footer" => "ftr",
-        "nav" => "nav",
-        "main" => "mn",
-        "aside" => "asd",
-        "figure" => "fig",
-        "figcaption" => "fc",
-        "button" => "btn",
-        "label" => "lbl",
-        _ => tag,
-    }
-}
-
 fn has_identifier_attrs(element: &scraper::node::Element) -> bool {
     for attr in element.attrs() {
         let key: &str = attr.0.as_ref();
@@ -459,7 +430,6 @@ impl SlimDisplayer {
 
         if let Node::Element(element) = node {
             if has_identifier_attrs(element) {
-                let tag = abbreviate_tag(element.name());
                 let mut line = String::new();
 
                 // Indent
@@ -467,10 +437,7 @@ impl SlimDisplayer {
                     line.push_str(&config.indent_string);
                 }
 
-                // Tag
-                line.push_str(tag);
-
-                // Collect attrs in order: id, class, then name/type/value/data-*
+                // Collect attrs: id, class, then name/type/value/data-*
                 let mut id_val: Option<&str> = None;
                 let mut class_val: Option<&str> = None;
                 let mut extra_attrs: Vec<(&str, &str)> = Vec::new();

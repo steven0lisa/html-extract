@@ -111,9 +111,7 @@ html-extract ':parent-of(selector)'
 
 ### Slim Mode (`--slim`)
 
-Output an ultra-compressed DOM skeleton that only preserves elements with identifying attributes (`id`, `class`, `name`, `type`, `value`, `data-*`). Designed for feeding HTML structure to AI with minimal token cost.
-
-**Tag abbreviations:** `div→d`, `span→s`, `table→t`, `ul→u`, `ol→o`, `li→l`, `section→sec`, `article→art`, `header→hdr`, `footer→ftr`, `main→mn`, `aside→asd`, `button→btn`, `label→lbl`, etc.
+Output an ultra-compressed DOM skeleton that only preserves identifiers (`id`, `class`, `name`, `type`, `value`, `data-*`), without tag name prefixes. Designed for feeding HTML structure to AI with minimal token cost.
 
 ```bash
 # Full page skeleton
@@ -143,11 +141,11 @@ $ curl -s https://example.com | html-extract --slim -i 4
 
 **Output:**
 ```
-d#main.container
-  h1.title
-  form.search-form
-    input[type=text][name=q][data-role=search]
-    btn[type=submit].btn.primary
+#main.container
+  .title
+  .search-form
+    [type=text][name=q][data-role=search]
+    [type=submit].btn.primary
 ```
 
 ## Examples
