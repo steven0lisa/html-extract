@@ -8,11 +8,12 @@ BINARY="html-extract"
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
+CYAN='\033[0;36m'
 NC='\033[0m'
 
-info()  { printf "${GREEN}[INFO]${NC}  %s\n" "$1"; }
-warn()  { printf "${YELLOW}[WARN]${NC}  %s\n" "$1"; }
-error() { printf "${RED}[ERROR]${NC} %s\n" "$1" >&2; exit 1; }
+info()    { printf "${GREEN}[INFO]${NC}  %s\n" "$1"; }
+warn()    { printf "${YELLOW}[WARN]${NC}  %s\n" "$1"; }
+error()   { printf "${RED}[ERROR]${NC} %s\n" "$1" >&2; exit 1; }
 
 # Detect OS
 detect_os() {
@@ -39,11 +40,23 @@ get_latest_version() {
         | sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/'
 }
 
+# Find existing installation path
+find_existing_binary() {
+    command -v "$BINARY" 2>/dev/null || true
+}
+
 # Main
 os=$(detect_os)
 arch=$(detect_arch)
 
 info "Detected: ${os}/${arch}"
+
+# Check for existing installation
+existing_path=$(find_existing_binary)
+if [ -n "$existing_path" ]; then
+    current_version=$("$existing_path" --version 2>/dev/null || echo "unknown")
+    info "Found existing installation: ${existing_path} (${current_version})"
+fi
 
 # Get version
 if [ -n "${1:-}" ]; then
@@ -57,7 +70,17 @@ if [ -z "$version" ]; then
     error "Failed to determine version. Check network or specify version manually: install.sh v0.1.0"
 fi
 
-info "Installing ${BINARY} ${version}"
+# Skip if already up-to-date
+if [ -n "$existing_path" ]; then
+    current_version=$("$existing_path" --version 2>/dev/null || echo "unknown")
+    if [ "$current_version" = "$version" ]; then
+        info "Already up-to-date: ${version}"
+        exit 0
+    fi
+    info "Updating ${current_version} -> ${version}"
+else
+    info "Installing ${BINARY} ${version}"
+fi
 
 # Build download URL
 asset_name="${BINARY}-${os}-${arch}.tar.gz"
@@ -82,21 +105,27 @@ if [ ! -f "$binary_path" ]; then
 fi
 chmod +x "$binary_path"
 
-# Pick install location
+# Determine install location
 install_dir=""
-for candidate in "/usr/local/bin" "$HOME/.local/bin" "$HOME/bin"; do
-    if [ -d "$candidate" ] || [ -w "$(dirname "$candidate")" ]; then
-        install_dir="$candidate"
-        break
+if [ -n "$existing_path" ]; then
+    # Update in-place: use the same directory as the existing installation
+    install_dir=$(dirname "$existing_path")
+    info "Updating at ${install_dir}/${BINARY}"
+else
+    # Fresh install: pick a location
+    for candidate in "/usr/local/bin" "$HOME/.local/bin" "$HOME/bin"; do
+        if [ -d "$candidate" ] || [ -w "$(dirname "$candidate")" ]; then
+            install_dir="$candidate"
+            break
+        fi
+    done
+    if [ -z "$install_dir" ]; then
+        install_dir="$HOME/.local/bin"
+        mkdir -p "$install_dir"
     fi
-done
-
-if [ -z "$install_dir" ]; then
-    install_dir="$HOME/.local/bin"
-    mkdir -p "$install_dir"
 fi
 
-# Install
+# Install / Update
 if cp "$binary_path" "${install_dir}/${BINARY}" 2>/dev/null; then
     info "Installed to ${install_dir}/${BINARY}"
 else
