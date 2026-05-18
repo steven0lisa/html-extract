@@ -8,12 +8,31 @@ Inspired by [jq](http://stedolan.github.io/jq/).
 
 ## Install
 
-Download pre-built binaries from the [releases page](https://github.com/steven0lisa/html-extract/releases/latest).
-
-Or build from source:
+### One-line install (macOS / Linux)
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/steven0lisa/html-extract/main/install.sh | bash
+```
+
+Install a specific version:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/steven0lisa/html-extract/main/install.sh | bash -s -- v0.1.0
+```
+
+The script auto-detects your OS and architecture, downloads the latest release, and installs to `/usr/local/bin` (or `~/.local/bin` if no write permission).
+
+### Windows
+
+Download the `.exe` from the [releases page](https://github.com/steven0lisa/html-extract/releases/latest) and add it to your PATH.
+
+### Build from source
+
+```bash
+git clone https://github.com/steven0lisa/html-extract.git
+cd html-extract
 cargo build --release
+# binary at target/release/html-extract
 ```
 
 ## Quick start
